@@ -6,14 +6,14 @@
 <title>Nigeria Food Price Predictor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 :root {
   --green:#1a6b3c;--green2:#22c55e;--gold:#f59e0b;--dark:#0a130d;
   --card:#111e14;--border:#1f3526;--text:#e8f5e9;--muted:#6aad7e;
   --white:#f1faf3;--xgb:#22c55e;--lstm:#f59e0b;--actual:#86efac;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Space Grotesk',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;line-height:1.7;font-size:15px;}
+body{font-family:'Poppins',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;line-height:1.7;font-size:15px;}
 header{background:linear-gradient(135deg,#050d07,#0a130d,#0d1a10);border-bottom:2px solid var(--green);padding:0 2rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:64px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1rem;color:var(--white)}
 .logo-icon{width:34px;height:34px;background:var(--green);border-radius:8px;display:grid;place-items:center;font-size:1.1rem}
@@ -36,10 +36,28 @@ header{background:linear-gradient(135deg,#050d07,#0a130d,#0d1a10);border-bottom:
 .hstat-val{font-family:'JetBrains Mono',monospace;font-size:1.7rem;font-weight:700;color:var(--green2)}
 .hstat-lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 main{max-width:1100px;margin:0 auto;padding:0 1.5rem 4rem}
-.food-tabs{display:flex;gap:8px;margin-bottom:2rem;flex-wrap:wrap}
-.tab-btn{padding:9px 20px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;letter-spacing:.01em}
-.tab-btn:hover{border-color:var(--green);color:var(--text)}
-.tab-btn.active{background:var(--green2);border-color:var(--green2);color:#fff;font-weight:700}
+.food-tabs{display:flex;gap:12px;margin-bottom:2rem;flex-wrap:wrap}
+.tab-btn{
+  position:relative;overflow:hidden;
+  width:110px;height:80px;
+  border-radius:10px;border:2px solid var(--border);
+  background:var(--card);color:#fff;
+  font-family:'Poppins',sans-serif;font-size:.8rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:0 0 10px 0;letter-spacing:.01em;text-shadow:0 1px 4px rgba(0,0,0,.8);
+  box-shadow:0 2px 8px rgba(0,0,0,.3)
+}
+.tab-btn .tab-bg{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;
+  transition:transform .3s;filter:brightness(.5) saturate(.9)
+}
+.tab-btn:hover .tab-bg{transform:scale(1.08);filter:brightness(.65) saturate(1.1)}
+.tab-btn .tab-label{position:relative;z-index:2;font-size:.82rem;font-weight:700;line-height:1}
+.tab-btn .tab-emoji{position:relative;z-index:2;font-size:1.3rem;margin-bottom:3px}
+.tab-btn:hover{border-color:var(--green2);color:#fff}
+.tab-btn.active{border-color:var(--green2);color:#fff;box-shadow:0 0 0 2px var(--green2),0 4px 16px rgba(34,197,94,.4)}.tab-btn.active .tab-bg{filter:brightness(.7) saturate(1.2)}
 .section-label{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--green2);letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem;font-weight:700;border-left:3px solid var(--green2);padding-left:10px}
 .metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:2rem}
 .metric-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;border-left:3px solid var(--border)}
@@ -64,9 +82,9 @@ main{max-width:1100px;margin:0 auto;padding:0 1.5rem 4rem}
 .predict-controls{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.5rem}
 .control-group{display:flex;flex-direction:column;gap:6px}
 .control-group label{font-size:.73rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.control-group select,.control-group input{background:#080f09;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;outline:none;min-width:150px}
+.control-group select,.control-group input{background:#080f09;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-family:'Poppins',sans-serif;font-size:.9rem;outline:none;min-width:150px}
 .control-group select:focus,.control-group input:focus{border-color:var(--green)}
-.predict-btn{background:var(--green2);border:none;border-radius:6px;color:#fff;padding:11px 28px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap;letter-spacing:.02em;text-transform:uppercase;font-size:.8rem}
+.predict-btn{background:var(--green2);border:none;border-radius:6px;color:#fff;padding:11px 28px;font-family:'Poppins',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap;letter-spacing:.02em;text-transform:uppercase;font-size:.8rem}
 .predict-btn:hover{background:#16a34a}
 .predict-result{display:none;background:#070d08;border:1px solid var(--border);border-radius:10px;padding:1.4rem}
 .predict-result.show{display:block}
@@ -80,15 +98,39 @@ main{max-width:1100px;margin:0 auto;padding:0 1.5rem 4rem}
 .forecast-table th{padding:12px 12px;text-align:left;color:var(--green2);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;border-bottom:2px solid var(--green);font-weight:700}
 .forecast-table td{padding:10px 12px;border-bottom:1px solid rgba(31,53,38,.6);font-family:'JetBrains Mono',monospace;font-size:.8rem}
 .forecast-table tr:last-child td{border-bottom:none}
-.forecast-table td:first-child{color:var(--muted);font-family:'Space Grotesk'}
+.forecast-table td:first-child{color:var(--muted);font-family:'Poppins'}
 .td-xgb{color:var(--xgb)}.td-lstm{color:var(--gold)}
 footer{border-top:1px solid var(--border);padding:2rem;text-align:center;color:var(--muted);font-size:.8rem}
 footer strong{color:var(--text)}
 .divider{border:none;border-top:1px solid var(--border);margin:2rem 0}
-@media(max-width:600px){.hero{padding:2.5rem 1rem 2rem}.result-grid{grid-template-columns:1fr}.chart-wrap{height:210px}.tab-btn{font-size:.78rem;padding:7px 12px}}
+@media(max-width:600px){.hero{padding:2.5rem 1rem 2rem}.result-grid{grid-template-columns:1fr}.chart-wrap{height:210px}.tab-btn{width:85px;height:65px}.tab-btn .tab-label{font-size:.72rem}}
+
+.hero-bg{
+  position:fixed;inset:0;z-index:0;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  transition:opacity .8s ease, background-image .1s;
+  opacity:0;
+}
+.hero-bg-overlay{
+  position:fixed;inset:0;z-index:1;
+  background:linear-gradient(
+    to bottom,
+    rgba(10,19,13,.82) 0%,
+    rgba(10,19,13,.75) 40%,
+    rgba(10,19,13,.92) 100%
+  );
+  transition:opacity .8s ease;
+  opacity:0;
+}
+header{position:relative;z-index:100}
+main{position:relative;z-index:10}
+.hero{position:relative;z-index:10}
+footer{position:relative;z-index:10}
 </style>
 </head>
 <body>
+<div class="hero-bg" id="heroBg"></div>
+<div class="hero-bg-overlay" id="heroBgOverlay"></div>
 <header>
   <div class="logo"><div class="logo-icon">🌾</div>NaijaFoodML</div>
   <div class="api-status checking" id="apiStatus">
@@ -109,14 +151,38 @@ footer strong{color:var(--text)}
 </div>
 <main>
   <div class="food-tabs" id="foodTabs">
-    <button class="tab-btn active" onclick="switchFood('rice_NGN',this)">🍚 Rice</button>
-    <button class="tab-btn" onclick="switchFood('beans_NGN',this)">🫘 Beans</button>
-    <button class="tab-btn" onclick="switchFood('garri_NGN',this)">🌾 Garri</button>
-    <button class="tab-btn" onclick="switchFood('yam_NGN',this)">🍠 Yam</button>
-    <button class="tab-btn" onclick="switchFood('eggs',this)">🥚 Eggs</button>
-    <button class="tab-btn" onclick="switchFood('fish',this)">🐟 Fish</button>
-    <button class="tab-btn" onclick="switchFood('meat_beef',this)">🥩 Beef</button>
-    <button class="tab-btn" onclick="switchFood('milk',this)">🥛 Milk</button>
+    <button class="tab-btn active" onclick="switchFood('rice_NGN',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1568347355280-d33fdf77d42a?w=300&q=80')"></div>
+      <span class="tab-emoji">🍚</span><span class="tab-label">Rice</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('beans_NGN',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1611575619080-37d9a782a9ec?w=300&q=80')"></div>
+      <span class="tab-emoji">🫘</span><span class="tab-label">Beans</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('garri_NGN',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&q=80')"></div>
+      <span class="tab-emoji">🌾</span><span class="tab-label">Garri</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('yam_NGN',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300&q=80')"></div>
+      <span class="tab-emoji">🍠</span><span class="tab-label">Yam</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('eggs',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=300&q=80')"></div>
+      <span class="tab-emoji">🥚</span><span class="tab-label">Eggs</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('fish',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=300&q=80')"></div>
+      <span class="tab-emoji">🐟</span><span class="tab-label">Fish</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('meat_beef',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1558030006-450675393462?w=300&q=80')"></div>
+      <span class="tab-emoji">🥩</span><span class="tab-label">Beef</span>
+    </button>
+    <button class="tab-btn" onclick="switchFood('milk',this)">
+      <div class="tab-bg" style="background-image:url('https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80')"></div>
+      <span class="tab-emoji">🥛</span><span class="tab-label">Milk</span>
+    </button>
   </div>
   <div class="section-label">Current Snapshot</div>
   <div class="metrics-row" id="metricsRow"></div>
@@ -242,6 +308,7 @@ function switchFood(food,btn){
   currentFood=food;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  updateHeroBg(food);
   renderAll();
 }
 
@@ -315,7 +382,7 @@ function renderTestChart(d){
       {label:'XGBoost',data:d.test_gb_pred,borderColor:'#25a366',borderWidth:2,pointRadius:0,tension:.3,fill:false,borderDash:[6,3]},
       {label:'Random Forest',data:d.test_rf_pred,borderColor:'#e8a020',borderWidth:2,pointRadius:0,tension:.3,fill:false,borderDash:[3,3]}
     ]},
-    options:{...CHART_OPTS,plugins:{...CHART_OPTS.plugins,legend:{display:true,labels:{color:'#64748b',font:{family:'Space Grotesk',size:11},boxWidth:16}}}}
+    options:{...CHART_OPTS,plugins:{...CHART_OPTS.plugins,legend:{display:true,labels:{color:'#64748b',font:{family:'Poppins',size:11},boxWidth:16}}}}
   });
 }
 
@@ -343,7 +410,7 @@ function renderForecastChart(f){
       {label:'XGBoost',data:f.xgboost_pred,borderColor:'#25a366',backgroundColor:'rgba(37,163,102,.08)',borderWidth:2.5,pointRadius:4,tension:.3,fill:true},
       {label:'Random Forest',data:f.lstm_pred,borderColor:'#e8a020',backgroundColor:'rgba(232,160,32,.06)',borderWidth:2,pointRadius:4,tension:.3,fill:true,borderDash:[6,3]}
     ]},
-    options:{...CHART_OPTS,plugins:{...CHART_OPTS.plugins,legend:{display:true,labels:{color:'#64748b',font:{family:'Space Grotesk',size:11},boxWidth:16}}}}
+    options:{...CHART_OPTS,plugins:{...CHART_OPTS.plugins,legend:{display:true,labels:{color:'#64748b',font:{family:'Poppins',size:11},boxWidth:16}}}}
   });
 }
 
@@ -379,8 +446,39 @@ function runPrediction(){
   }
 }
 
+
+const FOOD_IMAGES = {
+  'rice_NGN'  : 'https://images.unsplash.com/photo-1568347355280-d33fdf77d42a?w=1600&q=90',
+  'beans_NGN' : 'https://images.unsplash.com/photo-1611575619080-37d9a782a9ec?w=1600&q=90',
+  'garri_NGN' : 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1600&q=90',
+  'yam_NGN'   : 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1600&q=90',
+  'eggs'      : 'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=1600&q=90',
+  'fish'      : 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=1600&q=90',
+  'meat_beef' : 'https://images.unsplash.com/photo-1558030006-450675393462?w=1600&q=90',
+  'milk'      : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=1600&q=90',
+};
+
+function updateHeroBg(food) {
+  const bg      = document.getElementById('heroBg');
+  const overlay = document.getElementById('heroBgOverlay');
+  const url     = FOOD_IMAGES[food];
+  if (!url) return;
+
+  // Fade out
+  bg.style.opacity      = '0';
+  overlay.style.opacity = '0';
+
+  setTimeout(() => {
+    bg.style.backgroundImage = `url('${url}')`;
+    // Fade in
+    bg.style.opacity      = '1';
+    overlay.style.opacity = '1';
+  }, 300);
+}
+
 document.getElementById('predMonth').value=new Date().getMonth()+1;
 renderAll();
+updateHeroBg('rice_NGN');
 // ── API Status Check ─────────────────────────────────────────────
 const API_BASE = 'https://final-8-foods-api.onrender.com';
 
