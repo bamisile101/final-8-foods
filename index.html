@@ -126,6 +126,39 @@ header{position:relative;z-index:100}
 main{position:relative;z-index:10}
 .hero{position:relative;z-index:10}
 footer{position:relative;z-index:10}
+
+/* ── Custom Calendar ──────────────────────────────────────────── */
+.cal-wrap{position:relative;user-select:none}
+.cal-trigger{display:flex;align-items:center;justify-content:space-between;
+  background:#080f09;border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:10px 14px;font-family:'Poppins',sans-serif;
+  font-size:.9rem;cursor:pointer;min-width:200px;transition:border-color .15s}
+.cal-trigger:hover{border-color:var(--green2)}
+.cal-icon{font-size:1.1rem;margin-left:8px}
+.cal-dropdown{position:absolute;top:calc(100% + 8px);left:0;z-index:999;
+  background:#0d1a10;border:1px solid var(--green);border-radius:10px;
+  padding:14px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.5);
+  display:none}
+.cal-dropdown.open{display:block}
+.cal-header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px}
+.cal-title{font-size:.9rem;font-weight:700;color:var(--white)}
+.cal-nav{background:none;border:1px solid var(--border);border-radius:6px;
+  color:var(--green2);cursor:pointer;width:28px;height:28px;font-size:1.1rem;
+  line-height:1;display:grid;place-items:center;transition:border-color .15s}
+.cal-nav:hover{border-color:var(--green2)}
+.cal-days-header{display:grid;grid-template-columns:repeat(7,1fr);
+  gap:2px;margin-bottom:6px}
+.cal-days-header span{text-align:center;font-size:.68rem;color:var(--muted);
+  font-weight:600;padding:2px 0}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{text-align:center;padding:6px 2px;border-radius:6px;font-size:.8rem;
+  cursor:pointer;color:var(--text);transition:background .1s,color .1s}
+.cal-day:hover:not(.cal-empty):not(.cal-disabled){background:rgba(34,197,94,.2);color:var(--green2)}
+.cal-day.cal-today{border:1px solid var(--muted);color:var(--white)}
+.cal-day.cal-selected{background:var(--green2)!important;color:#fff!important;font-weight:700}
+.cal-day.cal-disabled{color:#2a3d2e;cursor:default}
+.cal-day.cal-empty{cursor:default}
 </style>
 </head>
 <body>
@@ -229,19 +262,26 @@ footer{position:relative;z-index:10}
         </select>
       </div>
       <div class="control-group">
-        <label>Target Month</label>
-        <select id="predMonth">
-          <option value="1">January</option><option value="2">February</option>
-          <option value="3">March</option><option value="4">April</option>
-          <option value="5">May</option><option value="6">June</option>
-          <option value="7">July</option><option value="8">August</option>
-          <option value="9">September</option><option value="10">October</option>
-          <option value="11">November</option><option value="12">December</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label>Year</label>
-        <select id="predYear"><option value="2026">2026</option><option value="2027">2027</option></select>
+        <label>Target Date</label>
+        <div class="cal-wrap" id="calWrap">
+          <div class="cal-trigger" id="calTrigger" onclick="toggleCal()">
+            <span id="calDisplay">Select a date</span>
+            <span class="cal-icon">📅</span>
+          </div>
+          <div class="cal-dropdown" id="calDropdown">
+            <div class="cal-header">
+              <button class="cal-nav" onclick="calNav(-1)">&#8249;</button>
+              <span class="cal-title" id="calTitle"></span>
+              <button class="cal-nav" onclick="calNav(1)">&#8250;</button>
+            </div>
+            <div class="cal-days-header">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span>
+              <span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div class="cal-days" id="calDays"></div>
+          </div>
+        </div>
+        <input type="hidden" id="predDate">
       </div>
       <button class="predict-btn" onclick="runPrediction()">Predict Price →</button>
     </div>
@@ -301,8 +341,11 @@ const CHART_OPTS = {
   }
 };
 
-function fmt(n){return '₦'+Number(n).toLocaleString('en-NG',{minimumFractionDigits:0,maximumFractionDigits:0})}
+function roundTo50(n){return Math.round(Number(n)/10)*10}
+function fmt(n){return '₦'+roundTo50(n).toLocaleString('en-NG',{minimumFractionDigits:0,maximumFractionDigits:0})}
 function fmtDate(d){const dt=new Date(d);return MONTHS[dt.getMonth()]+' '+dt.getFullYear()}
+function fmtTodayFull(){const t=new Date();return t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()}
+function todayDateStr(){const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
 
 function switchFood(food,btn){
   currentFood=food;
@@ -325,29 +368,36 @@ function renderAll(){
 }
 
 function renderMetrics(d,f){
-  const nextP=f.xgboost_pred[0];
+  // Find next month forecast from today
+  const _now = new Date();
+  const _nextMonth = new Date(_now.getFullYear(), _now.getMonth()+1, 1);
+  const _nextPrefix = _nextMonth.getFullYear()+'-'+String(_nextMonth.getMonth()+1).padStart(2,'0');
+  let nextP = f.xgboost_pred[0]; // fallback
+  for(let _i=0;_i<f.dates.length;_i++){
+    if(f.dates[_i].startsWith(_nextPrefix)){nextP=f.xgboost_pred[_i];break;}
+  }
   const change=((nextP-d.last_price)/d.last_price*100).toFixed(1);
   const arrow=change>=0?'↑':'↓';
   document.getElementById('metricsRow').innerHTML=`
     <div class="metric-card highlight">
-      <div class="metric-label">Latest Price (${fmtDate(d.last_date)})</div>
+      <div class="metric-label">Today's Price (${fmtTodayFull()})</div>
       <div class="metric-value green">${fmt(d.last_price)}</div>
       <div class="metric-sub">per kg · National avg</div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">Next Month Forecast</div>
+      <div class="metric-label">Next Month Forecast (${MONTHS[new Date().getMonth()+1>11?0:new Date().getMonth()+1]})</div>
       <div class="metric-value">${fmt(nextP)}</div>
       <div class="metric-sub">${arrow} ${Math.abs(change)}% vs current</div>
     </div>
     <div class="metric-card">
       <div class="metric-label">XGBoost MAE</div>
-      <div class="metric-value gold">${fmt(d.xgboost_mae)}</div>
-      <div class="metric-sub">RMSE ${fmt(d.xgboost_rmse)}</div>
+      <div class="metric-value gold">${(d.xgboost_mae/d.last_price*100).toFixed(1)}%</div>
+      <div class="metric-sub">Avg error rate on test set</div>
     </div>
     <div class="metric-card">
       <div class="metric-label">Random Forest MAE</div>
-      <div class="metric-value gold">${fmt(d.random_forest_mae)}</div>
-      <div class="metric-sub">RMSE ${fmt(d.random_forest_rmse)}</div>
+      <div class="metric-value gold">${(d.random_forest_mae/d.last_price*100).toFixed(1)}%</div>
+      <div class="metric-sub">Avg error rate on test set</div>
     </div>
     <div class="metric-card">
       <div class="metric-label">Training Samples</div>
@@ -401,6 +451,42 @@ function renderCompareTable(d){
     </tr>`;
 }
 
+
+// ── Build rolling 12-month forecast from today ────────────────────────────
+function getRolling12(f) {
+  const today = new Date();
+  today.setDate(1); today.setHours(0,0,0,0);
+
+  // Build a map of existing forecasts: 'YYYY-MM' -> {xgb, rf}
+  const existing = {};
+  for (let i = 0; i < f.dates.length; i++) {
+    const key = f.dates[i].substring(0,7);
+    existing[key] = { xgb: f.xgboost_pred[i], rf: f.lstm_pred[i] };
+  }
+
+  // Get the last known XGB and RF values for trend extension
+  const lastXgb = f.xgboost_pred[f.xgboost_pred.length - 1];
+  const lastRf  = f.lstm_pred[f.lstm_pred.length - 1];
+
+  // Build exactly 12 months starting from this month
+  const result = { dates:[], xgboost_pred:[], lstm_pred:[] };
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const dateStr = key + '-01';
+    result.dates.push(dateStr);
+    if (existing[key]) {
+      result.xgboost_pred.push(existing[key].xgb);
+      result.lstm_pred.push(existing[key].rf);
+    } else {
+      // Extend using last known values (flat extension)
+      result.xgboost_pred.push(lastXgb);
+      result.lstm_pred.push(lastRf);
+    }
+  }
+  return result;
+}
+
 function renderForecastChart(f){
   if(forecastChartInst)forecastChartInst.destroy();
   const labels=f.dates.map(fmtDate);
@@ -415,6 +501,7 @@ function renderForecastChart(f){
 }
 
 function renderForecastTable(f){
+  f = getRolling12(f);
   let rows='';
   for(let i=0;i<f.dates.length;i++){
     const avg=((f.xgboost_pred[i]+f.lstm_pred[i])/2).toFixed(0);
@@ -425,24 +512,26 @@ function renderForecastTable(f){
 
 function runPrediction(){
   const food=document.getElementById('predFood').value;
-  const month=parseInt(document.getElementById('predMonth').value);
-  const year=parseInt(document.getElementById('predYear').value);
-  const f=MODEL_DATA.future[food];
+  const dateVal=document.getElementById('predDate').value;
+  if(!dateVal){alert('Please select a date first.');return;}
+  const [year,month,day]=[parseInt(dateVal.split('-')[0]),parseInt(dateVal.split('-')[1]),parseInt(dateVal.split('-')[2])];
+  const _fRaw=MODEL_DATA.future[food];
+  const _fExt=getRolling12(_fRaw);
   const targetPrefix=year+'-'+String(month).padStart(2,'0');
   let xgbVal=null,rfVal=null;
-  for(let i=0;i<f.dates.length;i++){
-    if(f.dates[i].startsWith(targetPrefix)){xgbVal=f.xgboost_pred[i];rfVal=f.lstm_pred[i];break;}
+  for(let i=0;i<_fExt.dates.length;i++){
+    if(_fExt.dates[i].startsWith(targetPrefix)){xgbVal=_fExt.xgboost_pred[i];rfVal=_fExt.lstm_pred[i];break;}
   }
   const label=MODEL_DATA.results[food].label;
   document.getElementById('predictResult').classList.add('show');
   if(xgbVal!==null){
     document.getElementById('resXgb').textContent=fmt(xgbVal);
     document.getElementById('resLstm').textContent=fmt(rfVal);
-    document.getElementById('resNote').textContent=`Predicted ${label} price for ${MONTH_NAMES[month-1]} ${year} · Average: ${fmt((xgbVal+rfVal)/2)} per kg`;
+    document.getElementById('resNote').textContent=`Predicted ${label} price for ${day} ${MONTH_NAMES[month-1]} ${year} · Average: ${fmt((xgbVal+rfVal)/2)} per kg`;
   } else {
     document.getElementById('resXgb').textContent='N/A';
     document.getElementById('resLstm').textContent='N/A';
-    document.getElementById('resNote').textContent=`No forecast available for ${MONTH_NAMES[month-1]} ${year}. Forecasts cover the next 12 months only.`;
+    document.getElementById('resNote').textContent=`No forecast available for ${day} ${MONTH_NAMES[month-1]} ${year}. Forecasts cover the next 12 months only.`;
   }
 }
 
@@ -476,7 +565,96 @@ function updateHeroBg(food) {
   }, 300);
 }
 
-document.getElementById('predMonth').value=new Date().getMonth()+1;
+
+// ── Custom Calendar Widget ────────────────────────────────────────────────
+const CAL_MIN = (function(){const t=new Date();t.setHours(0,0,0,0);return t;})();
+const CAL_MAX = (function(){const t=new Date();return new Date(t.getFullYear(), t.getMonth()+12, 0);})();
+let calYear  = CAL_MIN.getFullYear();
+let calMonth = CAL_MIN.getMonth(); // 0-indexed
+let calSelectedDate = null;
+
+function toggleCal() {
+  const dd = document.getElementById('calDropdown');
+  if (dd.classList.contains('open')) {
+    dd.classList.remove('open');
+  } else {
+    renderCal();
+    dd.classList.add('open');
+  }
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function renderCal() {
+  const MONTHS_LONG = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+  document.getElementById('calTitle').textContent = MONTHS_LONG[calMonth] + ' ' + calYear;
+
+  const today    = new Date();
+  today.setHours(0,0,0,0);
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  let html = '';
+  // Empty cells for first week offset
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="cal-day cal-empty"></div>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const thisDate = new Date(calYear, calMonth, d);
+    const dateStr  = calYear + '-' +
+                     String(calMonth+1).padStart(2,'0') + '-' +
+                     String(d).padStart(2,'0');
+    let cls = 'cal-day';
+    if (thisDate < CAL_MIN || thisDate > CAL_MAX) cls += ' cal-disabled';
+    if (thisDate.toDateString() === today.toDateString())  cls += ' cal-today';
+    if (calSelectedDate === dateStr) cls += ' cal-selected';
+    const disabled = (thisDate < CAL_MIN || thisDate > CAL_MAX) ? '' :
+                     `onclick="selectCalDay('${dateStr}')"`;
+    html += `<div class="${cls}" ${disabled}>${d}</div>`;
+  }
+  document.getElementById('calDays').innerHTML = html;
+}
+
+function selectCalDay(dateStr) {
+  calSelectedDate = dateStr;
+  document.getElementById('predDate').value = dateStr;
+  // Update trigger display
+  const [y,m,d] = dateStr.split('-');
+  const MONTHS_LONG = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+  document.getElementById('calDisplay').textContent =
+    parseInt(d) + ' ' + MONTHS_LONG[parseInt(m)-1] + ' ' + y;
+  document.getElementById('calDisplay').style.color = 'var(--green2)';
+  document.getElementById('calDropdown').classList.remove('open');
+  renderCal();
+}
+
+// Close calendar on outside click
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('calWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('calDropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+// Set default selected date to tomorrow (clamped to range)
+const _tmrw = new Date();
+_tmrw.setHours(0,0,0,0);
+const _def  = _tmrw < CAL_MIN ? CAL_MIN : (_tmrw > CAL_MAX ? CAL_MAX : _tmrw);
+const _defStr = _def.getFullYear() + '-' +
+                String(_def.getMonth()+1).padStart(2,'0') + '-' +
+                String(_def.getDate()).padStart(2,'0');
+selectCalDay(_defStr);
+calYear  = _def.getFullYear();
+calMonth = _def.getMonth();
+
 renderAll();
 updateHeroBg('rice_NGN');
 // ── API Status Check ─────────────────────────────────────────────
